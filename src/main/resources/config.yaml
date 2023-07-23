@@ -1,0 +1,20 @@
+kumuluzee:
+  cors:
+    filters:
+      - url-pattern: /*  # This will apply CORS to all your endpoints
+        allow-origin: "*"  # This will allow all origins
+        allow-methods: GET, POST, PUT, DELETE, OPTIONS, HEAD  # Allowed methods
+        allow-headers: Authorization, Content-Type  # Allowed headers
+        expose-headers: ""  # Headers that are exposed to the client
+        max-age: 15  # Maximum age (in seconds) of the CORS preflight request
+        allow-credentials: false  # Whether cookies are allowed
+  name: comment-service
+  version: 1.0.0
+  env:
+    name: dev
+  server:
+    http:
+      port: 8081
+  discovery:
+    etcd:
+      hosts: http://localhost:2379
