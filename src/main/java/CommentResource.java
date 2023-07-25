@@ -99,7 +99,7 @@ public class CommentResource {
         LOGGER.info("DynamoDB response: " + commentRating);
         LOGGER.info("DynamoDB response: " + productId);
         String userId;
-        // Verify the token and get the user's groups
+        // Verify the token and get the u ser's groups
         List<String> groups = null;
         try {
             userId = TokenVerifier.verifyToken(token, "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw");
