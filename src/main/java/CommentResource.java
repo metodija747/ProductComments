@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 public class CommentResource {
 
     @Inject
-    @DiscoverService(value = "product-service", environment = "dev", version = "1.0.0")
+    @DiscoverService(value = "catalog-service", environment = "dev", version = "1.0.0")
     private Optional<URL> productCatalogUrl;
     private static final Logger LOGGER = Logger.getLogger(CommentResource.class.getName());
 
