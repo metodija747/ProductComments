@@ -4,11 +4,10 @@ metadata:
   name: comment-microservice
 spec:
   rules:
-    - host: ae14e5677d7da450f9ae33784a66da5c-556940459.us-east-1.elb.amazonaws.com
-      http:
+    - http:
         paths:
           - pathType: Prefix
-            path: "/"
+            path: "/comments"
             backend:
               service:
                 name: comment-microservice

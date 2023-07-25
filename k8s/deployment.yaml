@@ -16,4 +16,4 @@ spec:
         - name: comment-microservice
           image: 2741/comment-microservice:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
