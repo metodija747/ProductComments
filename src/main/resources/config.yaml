@@ -17,4 +17,4 @@ kumuluzee:
       port: 8081
   discovery:
     etcd:
-      hosts: http://etcd-client:2379
+      hosts: http://etcd:2379
