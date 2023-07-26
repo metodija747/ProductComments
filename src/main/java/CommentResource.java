@@ -112,6 +112,17 @@ public class CommentResource {
             return Response.status(Response.Status.FORBIDDEN).entity("Unauthorized: only admin users can add comments and ratings.").build();
         }
 
+        // Check if the user has already left a comment
+        QueryRequest userCommentCheckRequest = QueryRequest.builder()
+                .tableName(tableName)
+                .keyConditionExpression("UserId = :v_id")
+                .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(userId).build()))
+                .projectionExpression("UserId")
+                .build();
+        QueryResponse userCommentCheckResponse = dynamoDB.query(userCommentCheckRequest);
+
+
+
         try {
             Map<String, AttributeValue> item = new HashMap<>();
             item.put("UserId", AttributeValue.builder().s(userId).build());
@@ -145,7 +156,13 @@ public class CommentResource {
 
            if (productCatalogUrl.isPresent()) {
                Client client = ClientBuilder.newClient();
-               WebTarget target = client.target(productCatalogUrl.get().toString() + "/products/" + productId + "?action=add");
+               WebTarget target;
+               if (!userCommentCheckResponse.items().isEmpty()) {
+                  target = client.target(productCatalogUrl.get().toString() + "/products/" + productId + "?action=zero");
+               }
+               else{
+                   target = client.target(productCatalogUrl.get().toString() + "/products/" + productId + "?action=add");
+               }
                Response response = target.request(MediaType.APPLICATION_JSON)
                        .header("Auth", token)
                        .put(Entity.entity(avgRating, MediaType.APPLICATION_JSON));
