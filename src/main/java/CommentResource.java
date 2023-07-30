@@ -85,11 +85,11 @@ public class CommentResource {
     @Timed(name = "getProductCommentsTime", description = "Time taken to fetch product comments")
     @Metered(name = "getProductCommentsMetered", description = "Rate of getProductComments calls")
     @ConcurrentGauge(name = "getProductCommentsConcurrent", description = "Concurrent getProductComments calls")
-    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
+//    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
 //    @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "getProductCommentsFallback") // Fallback method if all retries fail
-    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
-    @Bulkhead(5) // Limit concurrent calls to 5
+//    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
+//    @Bulkhead(5) // Limit concurrent calls to 5
     @Traced
     public Response getProductComments(@PathParam("productId") String productId,
                                        @QueryParam("page") Integer page,
