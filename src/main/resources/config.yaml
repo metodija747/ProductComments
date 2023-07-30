@@ -8,6 +8,24 @@ kumuluzee:
         expose-headers: ""  # Headers that are exposed to the client
         max-age: 15  # Maximum age (in seconds) of the CORS preflight request
         allow-credentials: false  # Whether cookies are allowed
+  logs:
+    config-file: '<?xml version="1.0" encoding="UTF-8"?>
+                  <Configuration name="Product Comments">
+                      <Appenders>
+                          <Console name="console" target="SYSTEM_OUT">
+                              <PatternLayout pattern="%d %p %marker %m %X %ex %n"/>
+                          </Console>
+                      </Appenders>
+                      <Loggers>
+                          <Logger name="CommentResource" level="trace" additivity="false">
+                            <AppenderRef ref="console"/>
+                          </Logger>
+                          <!-- Default logger -->
+                          <Root level="info">
+                              <AppenderRef ref="console"/>
+                          </Root>
+                      </Loggers>
+                  </Configuration>'
   name: comment-service
   version: 1.0.0
   env:
@@ -15,6 +33,53 @@ kumuluzee:
   server:
     http:
       port: 8081
-  discovery:
-    etcd:
-      hosts: http://etcd-client:2379
+#  discovery:
+#    etcd:
+#      hosts: http://etcd-client:2379
+#  config:
+#    start-retry-delay-ms: 500
+#    max-retry-delay-ms: 90000
+#    etcd:
+#      hosts: http://etcd-client:2379
+  health:
+    logs:
+      enabled: true
+      type: both
+      level: FINE
+      period-s: 60
+    checks:
+      disk-space-health-check:
+        threshold: 100000000
+      etcd-health-check:
+        connection-url: http://etcd-client:2379/health
+      http-health-check:
+        connection-url: https://github.com/metodija747/MicroserviceMasterProductComments.git
+  metrics:
+    servlet:
+      enabled: true
+      mapping: /metrics
+  jwt-auth:
+    jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw/.well-known/jwks.json
+    issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
+#  opentracing:
+#    jaeger:
+#      service-name: comments-service
+#      #      agent-host: localhost
+#      #      agent-port: 5775
+#      #      endpoint: http://localhost:14268/api/traces
+#      agent-host: simplest-agent.observability
+#      agent-port: 5775
+#      reporter:
+#        log-spans: true
+#        max-queue-size: 10000
+#        flush-interval: 1000
+#        tags: key1=val1, key2=val2
+#      sampler:
+#        type: const
+#        param: 1
+#      propagation: JAEGER
+#      traceid-128bit: true
+aws-config:
+  dynamo-region: us-east-1
+  table-name: CommentDB
+  cognito-issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
