@@ -107,6 +107,7 @@ public class CommentResource {
         logMap.put("event", "getProductComments");
         logMap.put("value", productId);
         span.log(logMap);
+        checkAndUpdateDynamoDbClient();
         LOGGER.info("getProductComments method called");
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":pid", AttributeValue.builder().s(productId).build());
@@ -179,6 +180,7 @@ public class CommentResource {
         logMap.put("comment", commentRating.getComment());
         logMap.put("rating", commentRating.getRating());
         span.log(logMap);
+        checkAndUpdateDynamoDbClient();
         LOGGER.info("addCommentAndRating method called");
         if (jwt == null) {
             LOGGER.info("Unauthorized: only authenticated users can add/update rating to product.");
@@ -275,75 +277,75 @@ public class CommentResource {
         return Response.ok(response).build();
     }
 
-    @DELETE
-    @Path("/{productId}")
-    public Response deleteCommentAndRating(@PathParam("productId") String productId,
-                                           @HeaderParam("Auth") String token) {
-        // Parse the token from the Authorization header
-        LOGGER.info("DynamoDB response: " + token);
-        LOGGER.info("DynamoDB response: " + productId);
-        String userId;
-        // Verify the token and get the user's groups
-        List<String> groups = null;
-        try {
-            userId = TokenVerifier.verifyToken(token, "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw");
-            groups = TokenVerifier.getGroups(token, "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw");
-        } catch (JWTVerificationException | JwkException | MalformedURLException e) {
-            return Response.status(Response.Status.FORBIDDEN).entity("Invalid token.").build();
-        }
-
-        // Check if the user is in the "Admins" group
-        if (groups == null || !groups.contains("Admins")) {
-            return Response.status(Response.Status.FORBIDDEN).entity("Unauthorized: only admin users can delete comments and ratings.").build();
-        }
-
-        try {
-            // Delete the comment
-            Map<String, AttributeValue> key = new HashMap<>();
-            key.put("UserId", AttributeValue.builder().s(userId).build());
-            key.put("productId", AttributeValue.builder().s(productId).build());
-
-            DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
-                    .tableName(currentTableName)
-                    .key(key)
-                    .build();
-
-            dynamoDB.deleteItem(deleteItemRequest);
-
-            // After successfully deleting the comment, calculate the new average rating
-            QueryRequest queryRequest = QueryRequest.builder()
-                    .tableName(currentTableName)
-                    .keyConditionExpression("productId = :v_id")
-                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(productId).build()))
-                    .projectionExpression("Rating")
-                    .build();
-            QueryResponse queryResponse = dynamoDB.query(queryRequest);
-            List<Map<String, AttributeValue>> comments = queryResponse.items();
-
-            int totalRating = 0;
-            for (Map<String, AttributeValue> commentItem : comments) {
-                totalRating += Integer.parseInt(commentItem.get("Rating").n());
-            }
-            double avgRating = comments.size() > 0 ? (double) totalRating / comments.size() : 0;
-            LOGGER.info("DynamoDB response: " + avgRating);
-
-            if (productCatalogUrl.isPresent()) {
-                Client client = ClientBuilder.newClient();
-                WebTarget target = client.target(productCatalogUrl.get().toString() + "/products/" + productId + "?action=delete");
-                Response response = target.request(MediaType.APPLICATION_JSON)
-                        .header("Auth", token)
-                        .put(Entity.entity(avgRating, MediaType.APPLICATION_JSON));
-
-                if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
-                }
-            }
-
-            return Response.ok("Comment deleted successfully and average rating updated").build();
-        } catch (DynamoDbException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-        }
-    }
+//    @DELETE
+//    @Path("/{productId}")
+//    public Response deleteCommentAndRating(@PathParam("productId") String productId,
+//                                           @HeaderParam("Auth") String token) {
+//        // Parse the token from the Authorization header
+//        LOGGER.info("DynamoDB response: " + token);
+//        LOGGER.info("DynamoDB response: " + productId);
+//        String userId;
+//        // Verify the token and get the user's groups
+//        List<String> groups = null;
+//        try {
+//            userId = TokenVerifier.verifyToken(token, "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw");
+//            groups = TokenVerifier.getGroups(token, "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw");
+//        } catch (JWTVerificationException | JwkException | MalformedURLException e) {
+//            return Response.status(Response.Status.FORBIDDEN).entity("Invalid token.").build();
+//        }
+//
+//        // Check if the user is in the "Admins" group
+//        if (groups == null || !groups.contains("Admins")) {
+//            return Response.status(Response.Status.FORBIDDEN).entity("Unauthorized: only admin users can delete comments and ratings.").build();
+//        }
+//
+//        try {
+//            // Delete the comment
+//            Map<String, AttributeValue> key = new HashMap<>();
+//            key.put("UserId", AttributeValue.builder().s(userId).build());
+//            key.put("productId", AttributeValue.builder().s(productId).build());
+//
+//            DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
+//                    .tableName(currentTableName)
+//                    .key(key)
+//                    .build();
+//
+//            dynamoDB.deleteItem(deleteItemRequest);
+//
+//            // After successfully deleting the comment, calculate the new average rating
+//            QueryRequest queryRequest = QueryRequest.builder()
+//                    .tableName(currentTableName)
+//                    .keyConditionExpression("productId = :v_id")
+//                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(productId).build()))
+//                    .projectionExpression("Rating")
+//                    .build();
+//            QueryResponse queryResponse = dynamoDB.query(queryRequest);
+//            List<Map<String, AttributeValue>> comments = queryResponse.items();
+//
+//            int totalRating = 0;
+//            for (Map<String, AttributeValue> commentItem : comments) {
+//                totalRating += Integer.parseInt(commentItem.get("Rating").n());
+//            }
+//            double avgRating = comments.size() > 0 ? (double) totalRating / comments.size() : 0;
+//            LOGGER.info("DynamoDB response: " + avgRating);
+//
+//            if (productCatalogUrl.isPresent()) {
+//                Client client = ClientBuilder.newClient();
+//                WebTarget target = client.target(productCatalogUrl.get().toString() + "/products/" + productId + "?action=delete");
+//                Response response = target.request(MediaType.APPLICATION_JSON)
+//                        .header("Auth", token)
+//                        .put(Entity.entity(avgRating, MediaType.APPLICATION_JSON));
+//
+//                if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+//                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+//                }
+//            }
+//
+//            return Response.ok("Comment deleted successfully and average rating updated").build();
+//        } catch (DynamoDbException e) {
+//            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+//        }
+//    }
 
 
 }
