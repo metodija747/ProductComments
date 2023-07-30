@@ -85,11 +85,16 @@
             <artifactId>kumuluzee-logs-log4j2</artifactId>
             <version>1.4.6</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.kumuluz.ee.fault.tolerance</groupId>-->
-<!--            <artifactId>kumuluzee-fault-tolerance-smallrye</artifactId>-->
-<!--            <version>2.0.0</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.kumuluz.ee.metrics</groupId>
+            <artifactId>kumuluzee-metrics-core</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.kumuluz.ee.fault.tolerance</groupId>
+            <artifactId>kumuluzee-fault-tolerance-smallrye</artifactId>
+            <version>2.0.0</version>
+        </dependency>
         <dependency>
             <groupId>com.kumuluz.ee.jwt</groupId>
             <artifactId>kumuluzee-jwt-auth</artifactId>
