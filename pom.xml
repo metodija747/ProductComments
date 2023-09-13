@@ -84,7 +84,7 @@
         <dependency>
             <groupId>com.kumuluz.ee.metrics</groupId>
             <artifactId>kumuluzee-metrics-core</artifactId>
-            <version>2.3.0</version>
+            <version>1.1.1</version>
         </dependency>
         <dependency>
             <groupId>com.kumuluz.ee</groupId>
