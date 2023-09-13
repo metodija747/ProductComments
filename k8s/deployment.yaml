@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: comment-microservice
+  annotations: # <--  Add Prometheus annotations here
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/comments/metrics'
+    prometheus.io/port: '8081'
 spec:
   replicas: 1
   selector:

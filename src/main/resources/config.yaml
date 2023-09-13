@@ -8,6 +8,18 @@ kumuluzee:
         expose-headers: ""  # Headers that are exposed to the client
         max-age: 15  # Maximum age (in seconds) of the CORS preflight request
         allow-credentials: false  # Whether cookies are allowed
+  openapi-mp:
+    extension: true
+    version: "3.0.1"
+    servlet:
+      mapping: /comments/api-specs/*
+    ui:
+      enabled: true
+      mapping: /comments/api-specs/ui
+      specification-server: http://20.231.233.217/comments/api-specs
+      server-auto-config:
+        enabled: true
+        original-uri-check: false
   logs:
     config-file: '<?xml version="1.0" encoding="UTF-8"?>
                   <Configuration name="Product Comments">
@@ -42,11 +54,11 @@ kumuluzee:
     etcd:
       hosts: http://etcd-client:2379
   health:
-    logs:
-      enabled: true
-      type: both
-      level: FINE
-      period-s: 60
+#    logs:
+#      enabled: true
+#      type: both
+#      level: FINE
+#      period-s: 60
     checks:
       disk-space-health-check:
         threshold: 100000000
@@ -57,28 +69,28 @@ kumuluzee:
   metrics:
     servlet:
       enabled: true
-      mapping: /metrics
+      mapping: /products/metrics
   jwt-auth:
     jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw/.well-known/jwks.json
     issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
-  opentracing:
-    jaeger:
-      service-name: comments-service
-      #      agent-host: localhost
-      #      agent-port: 5775
-      #      endpoint: http://localhost:14268/api/traces
-      agent-host: simplest-agent.observability
-      agent-port: 5775
-      reporter:
-        log-spans: true
-        max-queue-size: 10000
-        flush-interval: 1000
-        tags: key1=val1, key2=val2
-      sampler:
-        type: const
-        param: 1
-      propagation: JAEGER
-      traceid-128bit: true
+#  opentracing:
+#    jaeger:
+#      service-name: comments-service
+#      #      agent-host: localhost
+#      #      agent-port: 5775
+#      #      endpoint: http://localhost:14268/api/traces
+#      agent-host: simplest-agent.observability
+#      agent-port: 5775
+#      reporter:
+#        log-spans: true
+#        max-queue-size: 10000
+#        flush-interval: 1000
+#        tags: key1=val1, key2=val2
+#      sampler:
+#        type: const
+#        param: 1
+#      propagation: JAEGER
+#      traceid-128bit: true
 aws-config:
   dynamo-region: us-east-1
   table-name: CommentDB
