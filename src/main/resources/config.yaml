@@ -54,6 +54,9 @@ kumuluzee:
     etcd:
       hosts: http://etcd-client:2379
   health:
+    servlet:
+      mapping: /comments/health
+      enabled: true
 #    logs:
 #      enabled: true
 #      type: both
