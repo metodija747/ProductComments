@@ -88,7 +88,6 @@ public class CommentResource {
     @Counted(name = "getProductCommentsCount", description = "Count of getProductComments calls")
     @Timed(name = "getProductCommentsTime", description = "Time taken to fetch product comments")
     @Metered(name = "getProductCommentsMetered", description = "Rate of getProductComments calls")
-    @ConcurrentGauge(name = "getProductCommentsConcurrent", description = "Concurrent getProductComments calls")
     @Traced
     @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
     public Response getProductComments(@PathParam("productId") String productId,
@@ -162,7 +161,6 @@ public class CommentResource {
     @Counted(name = "addCommentAndRatingCount", description = "Count of addCommentAndRating calls")
     @Timed(name = "addCommentAndRatingTime", description = "Time taken to add comment and rating")
     @Metered(name = "addCommentAndRatingMetered", description = "Rate of addCommentAndRating calls")
-    @ConcurrentGauge(name = "addCommentAndRatingConcurrent", description = "Concurrent addCommentAndRating calls")
     @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
     @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "addCommentAndRatingFallback") // Fallback method if all retries fail
@@ -256,89 +254,88 @@ public class CommentResource {
         response.put("description", "Unable to add comment and rating at the moment. Please try again later.");
         return Response.ok(response).build();
     }
-//
-//    @DELETE
-//    @Path("/{productId}")
-//    @Counted(name = "deleteCommentAndRatingCount", description = "Count of deleteCommentAndRating calls")
-//    @Timed(name = "deleteCommentAndRatingTime", description = "Time taken to delete comment and rating")
-//    @Metered(name = "deleteCommentAndRatingMetered", description = "Rate of deleteCommentAndRating calls")
-//    @ConcurrentGauge(name = "deleteCommentAndRatingConcurrent", description = "Concurrent deleteCommentAndRating calls")
-//    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
-//    @Retry(maxRetries = 3) // Retry up to 3 times
-//    @Fallback(fallbackMethod = "deleteCommentAndRatingFallback") // Fallback method if all retries fail
-//    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
-//    @Bulkhead(5) // Limit concurrent calls to 5
-//    @Traced
-//    public Response deleteCommentAndRating(@PathParam("productId") String productId) {
-//        Span span = tracer.buildSpan("deleteCommentAndRating").start();
-//        span.setTag("productId", productId);
-//        Map<String, Object> logMap = new HashMap<>();
-//        logMap.put("event", "deleteCommentAndRating");
-//        logMap.put("value", productId);
-//        span.log(logMap);
-//        checkAndUpdateDynamoDbClient();
-//        LOGGER.info("deleteCommentAndRating method called");
-//        if (jwt == null) {
-//            LOGGER.info("Unauthorized: only authenticated users can add/update rating to product.");
-//            return Response.ok("Unauthorized: only authenticated users can add/update rating to product.").build();
-//        }
-//        String userId = optSubject.getValue().orElse("default_value");
-//
-//        try {
-//            // Delete the comment
-//            Map<String, AttributeValue> key = new HashMap<>();
-//            key.put("UserId", AttributeValue.builder().s(userId).build());
-//            key.put("productId", AttributeValue.builder().s(productId).build());
-//
-//            DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
-//                    .tableName(currentTableName)
-//                    .key(key)
-//                    .build();
-//
-//            dynamoDB.deleteItem(deleteItemRequest);
-//
-//            // After successfully deleting the comment, calculate the new average rating
-//            QueryRequest queryRequest = QueryRequest.builder()
-//                    .tableName(currentTableName)
-//                    .keyConditionExpression("productId = :v_id")
-//                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(productId).build()))
-//                    .projectionExpression("Rating")
-//                    .build();
-//            QueryResponse queryResponse = dynamoDB.query(queryRequest);
-//            List<Map<String, AttributeValue>> comments = queryResponse.items();
-//
-//            int totalRating = 0;
-//            for (Map<String, AttributeValue> commentItem : comments) {
-//                totalRating += Integer.parseInt(commentItem.get("Rating").n());
-//            }
-//            double avgRating = comments.size() > 0 ? (double) totalRating / comments.size() : 0;
-//            LOGGER.info("DynamoDB response: " + avgRating);
-//
-//            if (productCatalogUrl.isPresent()) {
-//                ProductCatalogApi api = RestClientBuilder.newBuilder()
-//                        .baseUrl(new URL(productCatalogUrl.get().toString()))
-//                        .build(ProductCatalogApi.class);
-//
-//                String action = "delete";
-//                String authHeader = "Bearer " + jwt.getRawToken(); // get the raw JWT token and prepend "Bearer "
-//                Response response = api.updateProductRating(productId, action, authHeader, avgRating);
-//
-//                if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-//                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
-//                }
-//            }
-//
-//            return Response.ok("Comment deleted successfully and average rating updated").build();
-//        } catch (DynamoDbException | MalformedURLException e) {
-//            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-//        }
-//    }
-//    public Response deleteCommentAndRatingFallback(@PathParam("productId") String productId) {
-//        LOGGER.info("Fallback activated: Unable to delete comment and rating at the moment for productId: " + productId);
-//        Map<String, String> response = new HashMap<>();
-//        response.put("description", "Unable to delete comment and rating at the moment. Please try again later.");
-//        return Response.ok(response).build();
-//    }
+
+    @DELETE
+    @Path("/{productId}")
+    @Counted(name = "deleteCommentAndRatingCount", description = "Count of deleteCommentAndRating calls")
+    @Timed(name = "deleteCommentAndRatingTime", description = "Time taken to delete comment and rating")
+    @Metered(name = "deleteCommentAndRatingMetered", description = "Rate of deleteCommentAndRating calls")
+    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
+    @Retry(maxRetries = 3) // Retry up to 3 times
+    @Fallback(fallbackMethod = "deleteCommentAndRatingFallback") // Fallback method if all retries fail
+    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
+    @Bulkhead(5) // Limit concurrent calls to 5
+    @Traced
+    public Response deleteCommentAndRating(@PathParam("productId") String productId) {
+        Span span = tracer.buildSpan("deleteCommentAndRating").start();
+        span.setTag("productId", productId);
+        Map<String, Object> logMap = new HashMap<>();
+        logMap.put("event", "deleteCommentAndRating");
+        logMap.put("value", productId);
+        span.log(logMap);
+        checkAndUpdateDynamoDbClient();
+        LOGGER.info("deleteCommentAndRating method called");
+        if (jwt == null) {
+            LOGGER.info("Unauthorized: only authenticated users can add/update rating to product.");
+            return Response.ok("Unauthorized: only authenticated users can add/update rating to product.").build();
+        }
+        String userId = optSubject.getValue().orElse("default_value");
+
+        try {
+            // Delete the comment
+            Map<String, AttributeValue> key = new HashMap<>();
+            key.put("UserId", AttributeValue.builder().s(userId).build());
+            key.put("productId", AttributeValue.builder().s(productId).build());
+
+            DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
+                    .tableName(currentTableName)
+                    .key(key)
+                    .build();
+
+            dynamoDB.deleteItem(deleteItemRequest);
+
+            // After successfully deleting the comment, calculate the new average rating
+            QueryRequest queryRequest = QueryRequest.builder()
+                    .tableName(currentTableName)
+                    .keyConditionExpression("productId = :v_id")
+                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(productId).build()))
+                    .projectionExpression("Rating")
+                    .build();
+            QueryResponse queryResponse = dynamoDB.query(queryRequest);
+            List<Map<String, AttributeValue>> comments = queryResponse.items();
+
+            int totalRating = 0;
+            for (Map<String, AttributeValue> commentItem : comments) {
+                totalRating += Integer.parseInt(commentItem.get("Rating").n());
+            }
+            double avgRating = comments.size() > 0 ? (double) totalRating / comments.size() : 0;
+            LOGGER.info("DynamoDB response: " + avgRating);
+
+            if (productCatalogUrl.isPresent()) {
+                ProductCatalogApi api = RestClientBuilder.newBuilder()
+                        .baseUrl(new URL(productCatalogUrl.get().toString()))
+                        .build(ProductCatalogApi.class);
+
+                String action = "delete";
+                String authHeader = "Bearer " + jwt.getRawToken(); // get the raw JWT token and prepend "Bearer "
+                Response response = api.updateProductRating(productId, action, authHeader, avgRating);
+
+                if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+                }
+            }
+
+            return Response.ok("Comment deleted successfully and average rating updated").build();
+        } catch (DynamoDbException | MalformedURLException e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
+    }
+    public Response deleteCommentAndRatingFallback(@PathParam("productId") String productId) {
+        LOGGER.info("Fallback activated: Unable to delete comment and rating at the moment for productId: " + productId);
+        Map<String, String> response = new HashMap<>();
+        response.put("description", "Unable to delete comment and rating at the moment. Please try again later.");
+        return Response.ok(response).build();
+    }
 
 
 }
