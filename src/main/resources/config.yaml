@@ -7,7 +7,7 @@ kumuluzee:
         allow-headers: Authorization, Content-Type  # Allowed headers
         expose-headers: ""  # Headers that are exposed to the client
         max-age: 15  # Maximum age (in seconds) of the CORS preflight request
-        allow-credentials: false  # Whether cookies are allowed
+        allow-credentials: false  # Whether  cookies are allowed
   openapi-mp:
     extension: true
     version: "3.0.1"

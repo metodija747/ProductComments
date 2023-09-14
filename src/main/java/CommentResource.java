@@ -16,6 +16,13 @@ import org.eclipse.microprofile.jwt.Claims;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.metrics.Histogram;
 import org.eclipse.microprofile.metrics.annotation.*;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.opentracing.Traced;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import software.amazon.awssdk.regions.Region;
@@ -34,6 +41,7 @@ import java.util.logging.Logger;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @RequestScoped
+@SecurityRequirement(name = "jwtAuth")
 public class CommentResource {
 
     @Inject
@@ -80,18 +88,28 @@ public class CommentResource {
 
 
     @GET
+    @Operation(summary = "Retrieve comments of a product by its ID",
+            description = "Get paginated comments of a product along with associated rating counts.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Comments fetched successfully",
+                    content = @Content(mediaType = "application/json")),
+            @APIResponse(responseCode = "500", description = "Internal server error")
+    })
     @Path("/{productId}")
     @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "getProductCommentsFallback") // Fallback method if all retries fail
-    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
-    @Bulkhead(5) // Limit concurrent calls to 5
+    @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
+    @Bulkhead(100) // Limit concurrent calls to 100
     @Counted(name = "getProductCommentsCount", description = "Count of getProductComments calls")
     @Timed(name = "getProductCommentsTime", description = "Time taken to fetch product comments")
     @Metered(name = "getProductCommentsMetered", description = "Rate of getProductComments calls")
     @Traced
-    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
-    public Response getProductComments(@PathParam("productId") String productId,
+    @Timeout(value = 50, unit = ChronoUnit.SECONDS) // Timeout after 50 seconds
+    public Response getProductComments(@Parameter(description = "ID of the product to get comments for", required = true)
+                                       @PathParam("productId") String productId,
+                                       @Parameter(description = "Page number for pagination")
                                        @QueryParam("page") Integer page,
+                                       @Parameter(description = "Number of comments per page")
                                        @QueryParam("pageSize") Integer pageSize) {
         if (page == null) {
             page = 1;
@@ -135,13 +153,13 @@ public class CommentResource {
             responseBody.put("ratingCounts", ratingCounts);
 
             span.setTag("completed", true);
+            LOGGER.info("Successfully obtained product comments.");
             return Response.ok(responseBody).build();
 
         } catch (DynamoDbException e) {
-            LOGGER.log(Level.SEVERE, "Error while getting product comments " + productId, e);
+            LOGGER.log(Level.SEVERE, "Error while getting product comments for product " + productId, e);
             span.setTag("error", true);
-            throw new WebApplicationException("Error while getting product comments. Please try again later.", e, Response.Status.INTERNAL_SERVER_ERROR);
-        } finally {
+            throw new RuntimeException("Failed to obtain product comments", e);        } finally {
             span.finish();
         }
     }
@@ -151,21 +169,37 @@ public class CommentResource {
         LOGGER.info("Fallback activated: Unable to fetch product comments at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to fetch product comments at the moment. Please try again later.");
-        return Response.ok(response).build();
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
     }
 
 
+
     @POST
+    @Operation(summary = "Add a comment and rating to a product",
+            description = "Adds a comment and rating to a specific product identified by its productId.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Comment and rating added successfully.",
+            content = @Content(schema = @Schema(implementation = CommentRating.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized"
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error"
+    )
     @Path("/{productId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Counted(name = "addCommentAndRatingCount", description = "Count of addCommentAndRating calls")
     @Timed(name = "addCommentAndRatingTime", description = "Time taken to add comment and rating")
     @Metered(name = "addCommentAndRatingMetered", description = "Rate of addCommentAndRating calls")
-    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
+    @Timeout(value = 50, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
     @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "addCommentAndRatingFallback") // Fallback method if all retries fail
-    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
-    @Bulkhead(5) // Limit concurrent calls to 5
+    @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
+    @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
     public Response addCommentAndRating(@PathParam("productId") String productId,
                                         CommentRating commentRating) {
@@ -180,8 +214,10 @@ public class CommentResource {
         checkAndUpdateDynamoDbClient();
         LOGGER.info("addCommentAndRating method called");
         if (jwt == null) {
-            LOGGER.info("Unauthorized: only authenticated users can add/update rating to product.");
-            return Response.ok("Unauthorized: only authenticated users can add/update rating to product.").build();
+            LOGGER.log(Level.SEVERE, "Token verification failed");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid token.")
+                    .build();
         }
         String userId = optSubject.getValue().orElse("default_value");
         try {
@@ -195,6 +231,7 @@ public class CommentResource {
                     .expressionAttributeValues(attributeValues)
                     .build();
             QueryResponse userCommentCheckResponse = dynamoDB.query(userCommentCheckRequest);
+
 
             Map<String, AttributeValue> item = new HashMap<>();
             item.put("UserId", AttributeValue.builder().s(userId).build());
@@ -231,18 +268,23 @@ public class CommentResource {
 
                 String action = userCommentCheckResponse.items().isEmpty() ? "add" : "zero";
                 String authHeader = "Bearer " + jwt.getRawToken(); // get the raw JWT token and prepend "Bearer "
-                Response response = api.updateProductRating(productId, action, authHeader, avgRating);
+                Response responseFromCatalog = api.updateProductRating(productId, action, authHeader, avgRating);
 
-                if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+                if (responseFromCatalog.getStatus() != Response.Status.OK.getStatusCode()) {
+                    return Response.status(responseFromCatalog.getStatus()).entity(responseFromCatalog.readEntity(String.class)).build();
                 }
             }
-            span.setTag("completed", true);
-            return Response.ok("Comment deleted successfully and average rating updated").build();
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("message", "Comment and rating added successfully");
+            responseBody.put("averageRating", avgRating);
+
+            LOGGER.info("Comment and rating added successfully");
+            return Response.ok(responseBody).build(); // Changed this line to directly use the standard Response object
+
         } catch (DynamoDbException | MalformedURLException e) {
-            LOGGER.log(Level.SEVERE, "Error while deleting comment and rating for product " + productId, e);
+            LOGGER.log(Level.SEVERE, "Error while adding comment and rating for product " + productId, e);
             span.setTag("error", true);
-            throw new WebApplicationException("Error while deleting comment and rating. Please try again later.", e, Response.Status.INTERNAL_SERVER_ERROR);
+            throw new WebApplicationException("Error while adding comment and rating. Please try again later.", e, Response.Status.INTERNAL_SERVER_ERROR);
         } finally {
             span.finish();
         }
@@ -252,19 +294,41 @@ public class CommentResource {
         LOGGER.info("Fallback activated: Unable to add comment and rating at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to add comment and rating at the moment. Please try again later.");
-        return Response.ok(response).build();
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
     }
 
     @DELETE
+    @Operation(
+            summary = "Delete a comment and rating by product ID",
+            description = "This operation deletes a comment and rating for a given product ID and recalculates the average rating for that product."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Comment and rating deleted successfully"
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized, invalid token"
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Comment not found"
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error"
+            )
+    })
     @Path("/{productId}")
     @Counted(name = "deleteCommentAndRatingCount", description = "Count of deleteCommentAndRating calls")
     @Timed(name = "deleteCommentAndRatingTime", description = "Time taken to delete comment and rating")
     @Metered(name = "deleteCommentAndRatingMetered", description = "Rate of deleteCommentAndRating calls")
-    @Timeout(value = 20, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
+    @Timeout(value = 50, unit = ChronoUnit.SECONDS) // Timeout after 20 seconds
     @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "deleteCommentAndRatingFallback") // Fallback method if all retries fail
-    @CircuitBreaker(requestVolumeThreshold = 4) // Use circuit breaker after 4 failed requests
-    @Bulkhead(5) // Limit concurrent calls to 5
+    @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
+    @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
     public Response deleteCommentAndRating(@PathParam("productId") String productId) {
         Span span = tracer.buildSpan("deleteCommentAndRating").start();
@@ -276,12 +340,31 @@ public class CommentResource {
         checkAndUpdateDynamoDbClient();
         LOGGER.info("deleteCommentAndRating method called");
         if (jwt == null) {
-            LOGGER.info("Unauthorized: only authenticated users can add/update rating to product.");
-            return Response.ok("Unauthorized: only authenticated users can add/update rating to product.").build();
+            LOGGER.log(Level.SEVERE, "Token verification failed");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid token.")
+                    .build();
         }
         String userId = optSubject.getValue().orElse("default_value");
 
         try {
+            Map<String, AttributeValue> attributeValues = new HashMap<>();
+            attributeValues.put(":v_pid", AttributeValue.builder().s(productId).build());
+            attributeValues.put(":v_uid", AttributeValue.builder().s(userId).build());
+
+            QueryRequest userCommentCheckRequest = QueryRequest.builder()
+                    .tableName(currentTableName)
+                    .keyConditionExpression("productId = :v_pid and UserId = :v_uid")
+                    .expressionAttributeValues(attributeValues)
+                    .build();
+            QueryResponse userCommentCheckResponse = dynamoDB.query(userCommentCheckRequest);
+            // Check if a comment with this UserId and productId exists
+            if (userCommentCheckResponse.items() == null || userCommentCheckResponse.items().isEmpty()) {
+                LOGGER.info("Comment with given userId and productId does not exist in the database.");
+                Map<String, String> response = new HashMap<>();
+                response.put("description", "Comment cannot be deleted because it is not present in the database.");
+                return Response.status(Response.Status.NOT_FOUND).entity(response).build();
+            }
             // Delete the comment
             Map<String, AttributeValue> key = new HashMap<>();
             key.put("UserId", AttributeValue.builder().s(userId).build());
@@ -316,7 +399,7 @@ public class CommentResource {
                         .baseUrl(new URL(productCatalogUrl.get().toString()))
                         .build(ProductCatalogApi.class);
 
-                String action = "delete";
+                String action = "delete"; // Assuming the action is 'delete' when deleting a comment
                 String authHeader = "Bearer " + jwt.getRawToken(); // get the raw JWT token and prepend "Bearer "
                 Response response = api.updateProductRating(productId, action, authHeader, avgRating);
 
@@ -325,17 +408,24 @@ public class CommentResource {
                 }
             }
 
-            return Response.ok("Comment deleted successfully and average rating updated").build();
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("message", "Comment and rating deleted successfully");
+            responseBody.put("averageRating", avgRating);
+
+            LOGGER.info("Comment and rating deleted successfully with new average rating: " + avgRating);
+            return Response.ok(responseBody).build();
+
         } catch (DynamoDbException | MalformedURLException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            LOGGER.log(Level.SEVERE, "Error while deleting comment and rating for product " + productId, e);
+            Map<String, String> response = new HashMap<>();
+            response.put("description", "Error while deleting comment and rating. Please try again later.");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
         }
     }
     public Response deleteCommentAndRatingFallback(@PathParam("productId") String productId) {
         LOGGER.info("Fallback activated: Unable to delete comment and rating at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to delete comment and rating at the moment. Please try again later.");
-        return Response.ok(response).build();
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
     }
-
-
 }
