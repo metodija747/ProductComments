@@ -20,24 +20,24 @@ kumuluzee:
       server-auto-config:
         enabled: true
         original-uri-check: false
-  logs:
-    config-file: '<?xml version="1.0" encoding="UTF-8"?>
-                  <Configuration name="Product Comments">
-                      <Appenders>
-                          <Console name="console" target="SYSTEM_OUT">
-                              <PatternLayout pattern="%d %p %marker %m %X %ex %n"/>
-                          </Console>
-                      </Appenders>
-                      <Loggers>
-                          <Logger name="CommentResource" level="trace" additivity="false">
-                            <AppenderRef ref="console"/>
-                          </Logger>
-                          <!-- Default logger -->
-                          <Root level="info">
-                              <AppenderRef ref="console"/>
-                          </Root>
-                      </Loggers>
-                  </Configuration>'
+#  logs:
+#    config-file: '<?xml version="1.0" encoding="UTF-8"?>
+#                  <Configuration name="Product Comments">
+#                      <Appenders>
+#                          <Console name="console" target="SYSTEM_OUT">
+#                              <PatternLayout pattern="%d %p %marker %m %X %ex %n"/>
+#                          </Console>
+#                      </Appenders>
+#                      <Loggers>
+#                          <Logger name="CommentResource" level="trace" additivity="false">
+#                            <AppenderRef ref="console"/>
+#                          </Logger>
+#                          <!-- Default logger -->
+#                          <Root level="info">
+#                              <AppenderRef ref="console"/>
+#                          </Root>
+#                      </Loggers>
+#                  </Configuration>'
   name: comment-service
   version: 1.0.0
   env:
@@ -72,7 +72,7 @@ kumuluzee:
   metrics:
     servlet:
       enabled: true
-      mapping: /products/metrics
+      mapping: /comments/metrics
   jwt-auth:
     jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw/.well-known/jwks.json
     issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
