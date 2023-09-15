@@ -58,7 +58,7 @@ kumuluzee:
       mapping: /comments/health
       enabled: true
 #    logs:
-#      enabled:  true
+#      enabled: true
 #      type: both
 #      level: FINE
 #      period-s: 60
