@@ -20,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
@@ -105,12 +106,16 @@ public class CommentResource {
     @Metered(name = "getProductCommentsMetered", description = "Rate of getProductComments calls")
     @Traced
     @Timeout(value = 50, unit = ChronoUnit.SECONDS) // Timeout after 50 seconds
-    public Response getProductComments(@Parameter(description = "ID of the product to get comments for", required = true)
-                                       @PathParam("productId") String productId,
-                                       @Parameter(description = "Page number for pagination")
-                                       @QueryParam("page") Integer page,
-                                       @Parameter(description = "Number of comments per page")
-                                       @QueryParam("pageSize") Integer pageSize) {
+    public Response getProductComments(
+            @Parameter(description = "ID of the product to get comments for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
+            @PathParam("productId") String productId,
+
+            @Parameter(description = "Page number for pagination", example = "1")
+            @QueryParam("page") Integer page,
+
+            @Parameter(description = "Number of comments per page", example = "4")
+            @QueryParam("pageSize") Integer pageSize
+    ) {
         if (page == null) {
             page = 1;
         }
@@ -190,6 +195,16 @@ public class CommentResource {
             responseCode = "500",
             description = "Internal Server Error"
     )
+    @RequestBody(
+            description = "Comment and rating object that needs to be added",
+            required = true,
+            content = @Content(
+                    schema = @Schema(
+                            implementation = CommentRating.class,
+                            example = "{ \"comment\": \"Excellent product!\", \"rating\": 5 }"
+                    )
+            )
+    )
     @Path("/{productId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Counted(name = "addCommentAndRatingCount", description = "Count of addCommentAndRating calls")
@@ -201,7 +216,8 @@ public class CommentResource {
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
     @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
-    public Response addCommentAndRating(@PathParam("productId") String productId,
+    public Response addCommentAndRating(@Parameter(description = "ID of the product to add comment and rating for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
+                                        @PathParam("productId") String productId,
                                         CommentRating commentRating) {
         Span span = tracer.buildSpan("addCommentAndRating").start();
         span.setTag("productId", productId);
@@ -330,7 +346,8 @@ public class CommentResource {
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
     @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
-    public Response deleteCommentAndRating(@PathParam("productId") String productId) {
+    public Response deleteCommentAndRating(@Parameter(description = "ID of the product to add comment and rating for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
+                                               @PathParam("productId") String productId) {
         Span span = tracer.buildSpan("deleteCommentAndRating").start();
         span.setTag("productId", productId);
         Map<String, Object> logMap = new HashMap<>();
