@@ -210,7 +210,7 @@ public class CommentResource {
             content = @Content(
                     schema = @Schema(
                             implementation = CommentRating.class,
-                            example = "{ \"comment\": \"Excellent product!\", \"rating\": 5 }"
+                            example = "{ \"comment\": \"Excellent product!\", \"rating\": 5, \"productId\": \"a9abe32e-9bd6-43aa-bc00-9044a27b858b\" }"
                     )
             )
     )
@@ -225,14 +225,12 @@ public class CommentResource {
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
     @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
-    public Response addCommentAndRating(@Parameter(description = "ID of the product to add comment and rating for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
-                                        @PathParam("productId") String productId,
-                                        CommentRating commentRating) {
+    public Response addCommentAndRating(CommentRating commentRating) {
         Span span = tracer.buildSpan("addCommentAndRating").start();
-        span.setTag("productId", productId);
+        span.setTag("productId", commentRating.getProductId());
         Map<String, Object> logMap = new HashMap<>();
         logMap.put("event", "addCommentAndRating");
-        logMap.put("value", productId);
+        logMap.put("value", commentRating.getProductId());
         logMap.put("comment", commentRating.getComment());
         logMap.put("rating", commentRating.getRating());
         span.log(logMap);
@@ -250,7 +248,7 @@ public class CommentResource {
         String userId = optSubject.getValue().orElse("default_value");
         try {
             Map<String, AttributeValue> attributeValues = new HashMap<>();
-            attributeValues.put(":v_pid", AttributeValue.builder().s(productId).build());
+            attributeValues.put(":v_pid", AttributeValue.builder().s(commentRating.getProductId()).build());
             attributeValues.put(":v_uid", AttributeValue.builder().s(userId).build());
 
             QueryRequest userCommentCheckRequest = QueryRequest.builder()
@@ -263,7 +261,7 @@ public class CommentResource {
 
             Map<String, AttributeValue> item = new HashMap<>();
             item.put("UserId", AttributeValue.builder().s(userId).build());
-            item.put("productId", AttributeValue.builder().s(productId).build());
+            item.put("productId", AttributeValue.builder().s(commentRating.getProductId()).build());
             item.put("Comment", AttributeValue.builder().s(commentRating.getComment()).build());
             item.put("Rating", AttributeValue.builder().n(String.valueOf(commentRating.getRating())).build());
 
@@ -278,7 +276,7 @@ public class CommentResource {
             QueryRequest queryRequest = QueryRequest.builder()
                     .tableName(currentTableName)
                     .keyConditionExpression("productId = :v_id")
-                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(productId).build()))
+                    .expressionAttributeValues(Collections.singletonMap(":v_id", AttributeValue.builder().s(commentRating.getProductId()).build()))
                     .projectionExpression("Rating")
                     .build();
             QueryResponse queryResponse = dynamoDB.query(queryRequest);
@@ -296,7 +294,7 @@ public class CommentResource {
 
                 String action = userCommentCheckResponse.items().isEmpty() ? "add" : "zero";
                 String authHeader = "Bearer " + jwt.getRawToken(); // get the raw JWT token and prepend "Bearer "
-                Response responseFromCatalog = api.updateProductRating(productId, action, authHeader, avgRating);
+                Response responseFromCatalog = api.updateProductRating(commentRating.getProductId(), action, authHeader, avgRating);
 
                 if (responseFromCatalog.getStatus() != Response.Status.OK.getStatusCode()) {
                     return Response.status(responseFromCatalog.getStatus())
@@ -318,16 +316,15 @@ public class CommentResource {
                     .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
                     .build();
         } catch (DynamoDbException | MalformedURLException e) {
-            LOGGER.log(Level.SEVERE, "Error while adding comment and rating for product " + productId, e);
+            LOGGER.log(Level.SEVERE, "Error while adding comment and rating for product " + commentRating.getProductId(), e);
             span.setTag("error", true);
             throw new WebApplicationException("Error while adding comment and rating. Please try again later.", e, Response.Status.INTERNAL_SERVER_ERROR);
         } finally {
             span.finish();
         }
     }
-    public Response addCommentAndRatingFallback(@PathParam("productId") String productId,
-                                                CommentRating commentRating) {
-        LOGGER.info("Fallback activated: Unable to add comment and rating at the moment for productId: " + productId);
+    public Response addCommentAndRatingFallback(CommentRating commentRating) {
+        LOGGER.info("Fallback activated: Unable to add comment and rating at the moment for productId: " + commentRating.getProductId());
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to add comment and rating at the moment. Please try again later.");
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
