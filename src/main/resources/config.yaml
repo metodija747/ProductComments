@@ -85,7 +85,7 @@ kumuluzee:
     issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
   opentracing:
     jaeger:
-      service-name: comments-service
+      service-name: comment-service
       agent-host: simplest-agent.observability
       agent-port: 5775
       reporter:
