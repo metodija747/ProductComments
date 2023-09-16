@@ -214,7 +214,6 @@ public class CommentResource {
                     )
             )
     )
-    @Path("/{productId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Counted(name = "addCommentAndRatingCount", description = "Count of addCommentAndRating calls")
     @Timed(name = "addCommentAndRatingTime", description = "Time taken to add comment and rating")
