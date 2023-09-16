@@ -159,12 +159,16 @@ public class CommentResource {
 
             span.setTag("completed", true);
             LOGGER.info("Successfully obtained product comments.");
-            return Response.ok(responseBody).build();
-
+            return Response.ok(responseBody)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                    .build();
         } catch (DynamoDbException e) {
             LOGGER.log(Level.SEVERE, "Error while getting product comments for product " + productId, e);
             span.setTag("error", true);
-            throw new RuntimeException("Failed to obtain product comments", e);        } finally {
+            throw new RuntimeException("Failed to obtain product comments", e);
+        } finally {
             span.finish();
         }
     }
@@ -174,7 +178,12 @@ public class CommentResource {
         LOGGER.info("Fallback activated: Unable to fetch product comments at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to fetch product comments at the moment. Please try again later.");
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                .entity(response)
+                .build();
     }
 
 
@@ -232,6 +241,9 @@ public class CommentResource {
         if (jwt == null) {
             LOGGER.log(Level.SEVERE, "Token verification failed");
             return Response.status(Response.Status.UNAUTHORIZED)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
                     .entity("Invalid token.")
                     .build();
         }
@@ -287,7 +299,12 @@ public class CommentResource {
                 Response responseFromCatalog = api.updateProductRating(productId, action, authHeader, avgRating);
 
                 if (responseFromCatalog.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return Response.status(responseFromCatalog.getStatus()).entity(responseFromCatalog.readEntity(String.class)).build();
+                    return Response.status(responseFromCatalog.getStatus())
+                            .header("Access-Control-Allow-Origin", "*")
+                            .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                            .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                            .entity(responseFromCatalog.readEntity(String.class))
+                            .build();
                 }
             }
             Map<String, Object> responseBody = new HashMap<>();
@@ -295,8 +312,11 @@ public class CommentResource {
             responseBody.put("averageRating", avgRating);
 
             LOGGER.info("Comment and rating added successfully");
-            return Response.ok(responseBody).build(); // Changed this line to directly use the standard Response object
-
+            return Response.ok(responseBody)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                    .build();
         } catch (DynamoDbException | MalformedURLException e) {
             LOGGER.log(Level.SEVERE, "Error while adding comment and rating for product " + productId, e);
             span.setTag("error", true);
@@ -310,7 +330,12 @@ public class CommentResource {
         LOGGER.info("Fallback activated: Unable to add comment and rating at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to add comment and rating at the moment. Please try again later.");
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                .entity(response)
+                .build();
     }
 
     @DELETE
@@ -359,6 +384,9 @@ public class CommentResource {
         if (jwt == null) {
             LOGGER.log(Level.SEVERE, "Token verification failed");
             return Response.status(Response.Status.UNAUTHORIZED)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
                     .entity("Invalid token.")
                     .build();
         }
@@ -380,7 +408,12 @@ public class CommentResource {
                 LOGGER.info("Comment with given userId and productId does not exist in the database.");
                 Map<String, String> response = new HashMap<>();
                 response.put("description", "Comment cannot be deleted because it is not present in the database.");
-                return Response.status(Response.Status.NOT_FOUND).entity(response).build();
+                return Response.status(Response.Status.NOT_FOUND)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                        .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                        .entity(response)
+                        .build();
             }
             // Delete the comment
             Map<String, AttributeValue> key = new HashMap<>();
@@ -421,7 +454,12 @@ public class CommentResource {
                 Response response = api.updateProductRating(productId, action, authHeader, avgRating);
 
                 if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+                    return Response.status(response.getStatus())
+                            .header("Access-Control-Allow-Origin", "*")
+                            .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                            .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                            .entity(response.readEntity(String.class))
+                            .build();
                 }
             }
 
@@ -430,19 +468,25 @@ public class CommentResource {
             responseBody.put("averageRating", avgRating);
 
             LOGGER.info("Comment and rating deleted successfully with new average rating: " + avgRating);
-            return Response.ok(responseBody).build();
-
+            return Response.ok(responseBody)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                    .build();
         } catch (DynamoDbException | MalformedURLException e) {
             LOGGER.log(Level.SEVERE, "Error while deleting comment and rating for product " + productId, e);
             Map<String, String> response = new HashMap<>();
-            response.put("description", "Error while deleting comment and rating. Please try again later.");
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
+            throw new WebApplicationException("Error while deleting comment and rating. Please try again later.", e, Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
     public Response deleteCommentAndRatingFallback(@PathParam("productId") String productId) {
         LOGGER.info("Fallback activated: Unable to delete comment and rating at the moment for productId: " + productId);
         Map<String, String> response = new HashMap<>();
         response.put("description", "Unable to delete comment and rating at the moment. Please try again later.");
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(response).build();
-    }
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent")
+                .entity(response)
+                .build();    }
 }
