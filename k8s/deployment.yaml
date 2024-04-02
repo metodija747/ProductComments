@@ -32,3 +32,6 @@ spec:
                 secretKeyRef:
                   name: aws-credentials
                   key: AWS_SECRET_ACCESS_KEY
+          resources:
+            limits:
+              memory: "512Mi"

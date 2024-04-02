@@ -20,31 +20,31 @@ kumuluzee:
       server-auto-config:
         enabled: true
         original-uri-check: false
-  logs:
-    config-file:
-      '<?xml version="1.0" encoding="UTF-8"?>
-       <Configuration name="tutorial-logging">
-         <Appenders>
-           <!-- Added Console Appender -->
-           <Console name="console" target="SYSTEM_OUT">
-             <PatternLayout pattern="%d %p %marker %m %X %ex %n"/>
-           </Console>
-           <!-- Existing Socket Appender -->
-           <Socket name="logstash" protocol="tcp" host="20.246.243.191" port="5043">
-             <JsonLayout compact="true" eventEol="true">
-               <!-- Add this KeyValuePair to distinguish the microservice -->
-               <KeyValuePair key="serviceName" value="comment-service"/>
-             </JsonLayout>
-           </Socket>
-         </Appenders>
-         <Loggers>
-           <!-- Default logger -->
-           <Root level="info">
-             <AppenderRef ref="console"/>
-             <AppenderRef ref="logstash"/>
-           </Root>
-         </Loggers>
-       </Configuration>'
+#  logs:
+#    config-file:
+#      '<?xml version="1.0" encoding="UTF-8"?>
+#       <Configuration name="tutorial-logging">
+#         <Appenders>
+#           <!-- Added Console Appender -->
+#           <Console name="console" target="SYSTEM_OUT">
+#             <PatternLayout pattern="%d %p %marker %m %X %ex %n"/>
+#           </Console>
+#           <!-- Existing Socket Appender -->
+#           <Socket name="logstash" protocol="tcp" host="20.246.243.191" port="5043">
+#             <JsonLayout compact="true" eventEol="true">
+#               <!-- Add this KeyValuePair to distinguish the microservice -->
+#               <KeyValuePair key="serviceName" value="comment-service"/>
+#             </JsonLayout>
+#           </Socket>
+#         </Appenders>
+#         <Loggers>
+#           <!-- Default logger -->
+#           <Root level="info">
+#             <AppenderRef ref="console"/>
+#             <AppenderRef ref="logstash"/>
+#           </Root>
+#         </Loggers>
+#       </Configuration>'
   name: comment-service
   version: 1.0.0
   env:
@@ -83,21 +83,21 @@ kumuluzee:
   jwt-auth:
     jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw/.well-known/jwks.json
     issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
-  opentracing:
-    jaeger:
-      service-name: comment-service
-      agent-host: simplest-agent.observability
-      agent-port: 5775
-      reporter:
-        log-spans: true
-        max-queue-size: 10000
-        flush-interval: 1000
-        tags: key1=val1, key2=val2
-      sampler:
-        type: const
-        param: 1
-      propagation: JAEGER
-      traceid-128bit: true
+#  opentracing:
+#    jaeger:
+#      service-name: comment-service
+#      agent-host: simplest-agent.observability
+#      agent-port: 5775
+#      reporter:
+#        log-spans: true
+#        max-queue-size: 10000
+#        flush-interval: 1000
+#        tags: key1=val1, key2=val2
+#      sampler:
+#        type: const
+#        param: 1
+#      propagation: JAEGER
+#      traceid-128bit: true
 aws-config:
   dynamo-region: us-east-1
   table-name: CommentDB
