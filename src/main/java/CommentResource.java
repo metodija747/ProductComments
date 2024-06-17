@@ -100,7 +100,7 @@ public class CommentResource {
     @Retry(maxRetries = 3) // Retry up to 3 times
     @Fallback(fallbackMethod = "getProductCommentsFallback") // Fallback method if all retries fail
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
-    @Bulkhead(100) // Limit concurrent calls to 100
+//    @Bulkhead(100) // Limit concurrent calls to 100
     @Counted(name = "getProductCommentsCount", description = "Count of getProductComments calls")
     @Timed(name = "getProductCommentsTime", description = "Time taken to fetch product comments")
     @Metered(name = "getProductCommentsMetered", description = "Rate of getProductComments calls")
