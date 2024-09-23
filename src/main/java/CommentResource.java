@@ -107,7 +107,7 @@ public class CommentResource {
     @Traced
     @Timeout(value = 50, unit = ChronoUnit.SECONDS) // Timeout after 50 seconds
     public Response getProductComments(
-            @Parameter(description = "ID of the product to get comments for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
+            @Parameter(description = "ID of the product to get comments for", required = true, example = "33c08f3a-f764-493d-988a-6ceb4a78d25d")
             @PathParam("productId") String productId,
 
             @Parameter(description = "Page number for pagination", example = "1")
@@ -210,7 +210,7 @@ public class CommentResource {
             content = @Content(
                     schema = @Schema(
                             implementation = CommentRating.class,
-                            example = "{ \"comment\": \"Excellent product!\", \"rating\": 5, \"productId\": \"a9abe32e-9bd6-43aa-bc00-9044a27b858b\" }"
+                            example = "{ \"comment\": \"Excellent product!\", \"rating\": 5, \"productId\": \"33c08f3a-f764-493d-988a-6ceb4a78d25d\" }"
                     )
             )
     )
@@ -367,7 +367,7 @@ public class CommentResource {
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 2000)
     @Bulkhead(100) // Limit concurrent calls to 5
     @Traced
-    public Response deleteCommentAndRating(@Parameter(description = "ID of the product to add comment and rating for", required = true, example = "a9abe32e-9bd6-43aa-bc00-9044a27b858b")
+    public Response deleteCommentAndRating(@Parameter(description = "ID of the product to add comment and rating for", required = true, example = "33c08f3a-f764-493d-988a-6ceb4a78d25d")
                                                @PathParam("productId") String productId) {
         Span span = tracer.buildSpan("deleteCommentAndRating").start();
         span.setTag("productId", productId);
