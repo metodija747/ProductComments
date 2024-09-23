@@ -17,6 +17,9 @@ spec:
         image: 2741/comment-microservice:latest
         ports:
         - containerPort: 8081
+        resources:
+          requests:
+            cpu: "500m" 
         env:
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
@@ -28,7 +31,3 @@ spec:
             secretKeyRef:
               name: aws-credentials
               key: AWS_SECRET_ACCESS_KEY
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "289m"

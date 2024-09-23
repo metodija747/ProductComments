@@ -81,8 +81,8 @@ kumuluzee:
       enabled: true
       mapping: /comments/metrics
   jwt-auth:
-    jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw/.well-known/jwks.json
-    issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
+    jwks-uri: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_7pGhc7VeN/.well-known/jwks.json
+    issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_7pGhc7VeN
 #  opentracing:
 #    jaeger:
 #      service-name: comment-service
@@ -101,4 +101,4 @@ kumuluzee:
 aws-config:
   dynamo-region: us-east-1
   table-name: CommentDB
-  cognito-issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_cl8iVMzUw
+  cognito-issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_7pGhc7VeN
